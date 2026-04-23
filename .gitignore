@@ -1,0 +1,55 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+.conda/
+
+# Output data (large files – regenerate locally)
+out/
+*.parquet
+*.jsonl
+
+# nuScenes data (large – download separately)
+nuscenes-mini/
+nuscenes-trainval/
+data/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Secrets / API keys
+.env
+*.env
+secrets.json
+
+# Large model outputs / cached images
+*.pkl
+*.h5
+*.pt
+*.pth
+
+# Windows-specific
+$RECYCLE.BIN/
