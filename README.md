@@ -31,7 +31,7 @@ ood_reasoning.parquet（对齐官方 Alpamayo-R1 格式）
 | 模块 | 状态 | 说明 |
 |------|------|------|
 | 片段提取 | ✅ | 滑动窗口从 nuScenes 样本中检测候选片段 |
-| 规则决策标注 | ✅ | 基于自车运动学、地图拓扑和周围目标，生成 6 纵向 × 4 横向决策类别 |
+| 规则决策标注 | ✅ | 基于自车运动学、地图拓扑和周围目标，生成 7 纵向 × 8 横向决策类别（完全对齐论文 Table 1） |
 | 低信号过滤 | ✅ | 过滤无因果触发的平凡片段（18m 同车道无前车时丢弃 set_speed_tracking） |
 | VLM 教师标注 | ✅ | 调用 qwen-vl-max（或任意 OpenAI 兼容接口），输入 CAM_FRONT 图像 + 结构化场景上下文 |
 | 英文 CoT 生成 | ✅ | 输出与官方 Alpamayo-R1 风格一致的动作短语 |
@@ -166,7 +166,8 @@ python scripts/export_to_official_format.py \
 | `speed_adaptation_road` | `PEDESTRIAN_DENSITY_OR_CLOSE_PROXIMITY` 或 `WORK_ZONES_TEMP_TRAFFIC_CONTROL` |
 | `stop_static_constraint` | `WORK_ZONES_TEMP_TRAFFIC_CONTROL` |
 | `yield_agent_right_of_way` | `PEDESTRIAN_DENSITY_OR_CLOSE_PROXIMITY` |
-| `maintain_speed`（转弯车道） | `COMPLEX_INTERSECTION_INTERACTION` |
+| `turn_left` / `turn_right` | `COMPLEX_INTERSECTION_INTERACTION` |
+| `gap_searching` / `acceleration_passing` | `SPECIAL_OR_UNCOMMON_VEHICLE_BEHAVIOR` |
 | 其他 | `SPECIAL_OR_UNCOMMON_VEHICLE_BEHAVIOR` |
 
 ---
@@ -203,27 +204,34 @@ python scripts/generate_eval_report.py \
 
 ---
 
-## 驾驶决策分类
+## 驾驶决策分类（对齐论文 Table 1）
 
-### 纵向（6类）
-
-| 类别 | 含义 |
-|------|------|
-| `lead_obstacle_following` | 跟随前车，保持安全距离 |
-| `speed_adaptation_road` | 根据道路/环境条件调整速度 |
-| `stop_static_constraint` | 在停止线/交通管控处停车 |
-| `yield_agent_right_of_way` | 礼让行人或穿越目标 |
-| `maintain_speed` | 保持当前速度巡航 |
-| `set_speed_tracking` | 跟踪设定速度（无因果触发时过滤） |
-
-### 横向（4类）
+### 纵向（7类）
 
 | 类别 | 含义 |
 |------|------|
-| `lane_keeping_centering` | 保持车道居中 |
-| `in_lane_nudge_left` | 车道内小幅左偏 |
-| `in_lane_nudge_right` | 车道内小幅右偏 |
-| `lane_change_left/right` | 完整换道 |
+| `set_speed_tracking` | 无外部约束时维持/达到目标速度巡航 |
+| `lead_obstacle_following` | 跟随前车，保持安全跟车距离 |
+| `speed_adaptation_road` | 因道路几何特征（弯道/坡道）减速 |
+| `gap_searching` | 换道/并线时主动调速创造间隙 |
+| `acceleration_passing` | 加速超越较慢前车（配合横向换道计划）|
+| `yield_agent_right_of_way` | 礼让行人、横穿车辆或 cut-in 目标 |
+| `stop_static_constraint` | 在停止线/红灯等控制点减速停车 |
+
+### 横向（8类，部分有左/右子类）
+
+| 类别 | 含义 |
+|------|------|
+| `lane_keeping_centering` | 保持车道居中，无横向机动 |
+| `merge_split` | 并道或分流（facility 类型切换）|
+| `out_of_lane_nudge_left` | 跨越车道线的大幅左偏（> 1.2m）|
+| `out_of_lane_nudge_right` | 跨越车道线的大幅右偏（> 1.2m）|
+| `in_lane_nudge_left` | 车道内小幅左偏（0.3 ~ 1.2m）|
+| `in_lane_nudge_right` | 车道内小幅右偏（0.3 ~ 1.2m）|
+| `lane_change_left` / `lane_change_right` | 完整变道至相邻车道 |
+| `pull_over` | 靠边停车 |
+| `turn_left` / `turn_right` | 路口左转 / 右转 |
+| `lateral_maneuver_abort` | 取消正在进行的横向机动 |
 
 ---
 
@@ -231,7 +239,7 @@ python scripts/generate_eval_report.py \
 
 | 方面 | 官方数据集 | 本项目 |
 |------|-----------|--------|
-| 数据规模 | ~1,740 条 | 14 条（mini）/ ~1,000 条（trainval，待测试）|
+| 数据规模 | ~1,740 条 | 18 条（mini）/ ~1,000 条（trainval，待测试）|
 | CoT 质量 | 人工审核 | VLM 生成（qwen-vl-max）|
 | `event_start_timestamp` | 相对毫秒时间戳 | nuScenes 绝对微秒时间戳 |
 | 数据来源 | NVIDIA 内部数据 | 公开 nuScenes |
