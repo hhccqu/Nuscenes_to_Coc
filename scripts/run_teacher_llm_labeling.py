@@ -329,6 +329,46 @@ def _parse_response(raw: str, request_id: str) -> Optional[Dict]:
         return None
 
 
+# Known VLM aliases → canonical CoC categories
+# These are terms qwen-vl-max uses naturally that must be remapped.
+_LONGITUDINAL_ALIASES: Dict[str, str] = {
+    "gentle_accelerate": "set_speed_tracking",
+    "gentle_decelerate": "lead_obstacle_following",
+    "maintain_speed": "set_speed_tracking",
+    "cruise": "set_speed_tracking",
+    "accelerate": "set_speed_tracking",
+    "decelerate": "lead_obstacle_following",
+    "brake": "stop_static_constraint",
+}
+_LATERAL_ALIASES: Dict[str, str] = {
+    "go_straight": "lane_keeping_centering",
+    "keep_lane": "lane_keeping_centering",
+    "steer_left": "in_lane_nudge_left",
+    "steer_right": "in_lane_nudge_right",
+    "sharp_steer_left": "turn_left",
+    "sharp_steer_right": "turn_right",
+}
+
+
+def _remap_aliases(label: Dict) -> Dict:
+    """Remap known VLM alias terms to canonical CoC category names in-place."""
+    dd = label.get("driving_decision", {})
+    lon = dd.get("longitudinal", "")
+    lat = dd.get("lateral", "")
+    remapped = []
+    if lon in _LONGITUDINAL_ALIASES:
+        new_lon = _LONGITUDINAL_ALIASES[lon]
+        remapped.append(f"longitudinal '{lon}' → '{new_lon}'")
+        dd["longitudinal"] = new_lon
+    if lat in _LATERAL_ALIASES:
+        new_lat = _LATERAL_ALIASES[lat]
+        remapped.append(f"lateral '{lat}' → '{new_lat}'")
+        dd["lateral"] = new_lat
+    if remapped:
+        print(f"  [REMAP] " + "; ".join(remapped))
+    return label
+
+
 def _validate_label(label: Dict) -> bool:
     """Basic structural validation of teacher label."""
     import sys
@@ -467,6 +507,8 @@ def main() -> None:
                     response_schema,
                 )
                 label = _parse_response(raw_output, request_id)
+                if label is not None:
+                    label = _remap_aliases(label)
                 if label is not None and _validate_label(label):
                     break
                 else:

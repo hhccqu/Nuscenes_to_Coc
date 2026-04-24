@@ -57,6 +57,7 @@ def _teacher_user_prompt() -> str:
         f"Longitudinal MUST be exactly one of these strings (copy verbatim): {longitudinal}. "
         f"Lateral MUST be exactly one of these strings (copy verbatim): {lateral}. "
         "WARNING: Using any string not in the above lists (e.g. 'gentle_accelerate', 'maintain_speed', 'cruise') is INVALID and will be rejected. "
+        "If the ego is simply driving without external constraints, use 'set_speed_tracking' (NOT 'gentle_accelerate'). "
         "Step 2 — Identify 1-3 critical causal components from the history observation window that directly caused the decision. "
         "Component categories: critical_objects, traffic_controls, road_events, lane_info, ego_motion. "
         "For each component, describe its type, relative position, and crucially HOW it affects ego behavior "
@@ -121,6 +122,25 @@ def _teacher_output_schema() -> Dict:
     }
 
 
+def _strip_meta_actions(obj):
+    """Recursively remove meta_actions / meta_action_summary from dicts/lists.
+
+    These are internal motion-primitive labels (gentle_accelerate, maintain_speed,
+    sharp_steer_left, …) that belong to a different taxonomy than the CoC decision
+    categories.  Sending them to the VLM causes it to copy them verbatim as the
+    longitudinal/lateral answer instead of choosing from the valid CoC category list.
+    """
+    import copy
+    obj = copy.deepcopy(obj)
+    if isinstance(obj, dict):
+        obj.pop("meta_actions", None)
+        obj.pop("meta_action_summary", None)
+        return {k: _strip_meta_actions(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_strip_meta_actions(item) for item in obj]
+    return obj
+
+
 def build_teacher_vlm_package(sample_payload: Dict) -> Dict:
     """Build a teacher-labeling package from one intermediate sample."""
     history_frames = sample_payload["history_frames"]
@@ -135,7 +155,7 @@ def build_teacher_vlm_package(sample_payload: Dict) -> Dict:
                 "annotation_economy",
             ],
             "image_assets": _history_image_assets(history_frames),
-            "structured_context": {
+            "structured_context": _strip_meta_actions({
                 "sample_id": sample_payload["sample_id"],
                 "nuscenes_sample_token": sample_payload["nuscenes_sample_token"],
                 "nuscenes_scene_token": sample_payload["nuscenes_scene_token"],
@@ -148,7 +168,7 @@ def build_teacher_vlm_package(sample_payload: Dict) -> Dict:
                 "object_summary": sample_payload["object_summary"],
                 "lane_summary": sample_payload["lane_summary"],
                 "static_controls": sample_payload["static_controls"],
-            },
+            }),
             "format_constraints": {
                 "json_only": True,
                 "reasoning_template": "[Ego action verb] [to/because/due to] [causal factor(s)].",
