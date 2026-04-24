@@ -23,7 +23,7 @@ def validate_sample(sample: Dict, export_low_confidence: bool = False) -> Tuple[
         reasons.append("invalid_confidence")
     if confidence == "low" and not export_low_confidence:
         reasons.append("low_confidence_filtered")
-    if "因为" not in sample["coc_reasoning"] or "所以" not in sample["coc_reasoning"]:
+    if len(sample["coc_reasoning"].strip()) < 10:
         reasons.append("invalid_reasoning_template")
     if longitudinal == "none" and lateral == "none":
         reasons.append("both_decisions_none")

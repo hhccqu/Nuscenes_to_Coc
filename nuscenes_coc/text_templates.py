@@ -39,16 +39,37 @@ def _component_to_text(component: Dict) -> str:
 
 
 def generate_coc_reasoning(driving_decision: Dict, components: List[Dict]) -> str:
-    """Generate a reasoning string from structured facts."""
-    longitudinal_text = LONGITUDINAL_TEXT_MAP[driving_decision["longitudinal"]]
-    lateral_text = LATERAL_TEXT_MAP[driving_decision["lateral"]]
+    """Generate a rule-based preliminary reasoning string (English, verb-phrase style)."""
+    lon = driving_decision.get("longitudinal", "none")
+    lat = driving_decision.get("lateral", "lane_keeping_centering")
+    longitudinal_text = LONGITUDINAL_TEXT_MAP.get(lon, lon)
+    lateral_text = LATERAL_TEXT_MAP.get(lat, lat)
 
     if not components:
-        return "因为当前车道前方通行条件稳定且自车速度变化较小，所以保持当前车速，同时保持在车道中心。"
+        return f"{longitudinal_text.capitalize()} while {lateral_text} due to stable road conditions."
 
-    component_texts = [_component_to_text(component) for component in components[:2]]
-    if len(component_texts) == 1:
-        because_clause = component_texts[0]
+    # Build a short cause phrase from the first critical component
+    c = components[0]
+    cat = c.get("category", "")
+    attrs = c.get("attributes", {})
+    if cat == "critical_objects":
+        dist = attrs.get("distance")
+        obj_type = attrs.get("type", "object")
+        cause = f"the {obj_type} at {dist:.1f}m" if dist is not None else f"the {obj_type} ahead"
+    elif cat == "traffic_controls":
+        dist = attrs.get("distance_to_stop_line")
+        cause = f"the stop line at {dist:.1f}m" if dist is not None else "the upcoming stop line"
+    elif cat == "road_events":
+        cause = attrs.get("description", "road conditions ahead")
+    elif cat == "lane_info":
+        offset = attrs.get("signed_offset")
+        cause = f"lateral offset of {offset:.2f}m from lane center" if offset is not None else "lane position"
+    elif cat == "ego_motion":
+        cause = "current ego motion state"
     else:
-        because_clause = "、".join(component_texts)
-    return f"因为{because_clause}，所以{longitudinal_text}，同时{lateral_text}。"
+        cause = "current scene conditions"
+
+    lat_lower = lateral_text[:1].lower() + lateral_text[1:]
+    if lat in ("lane_keeping_centering",):
+        return f"{longitudinal_text.capitalize()} due to {cause}."
+    return f"{longitudinal_text.capitalize()} while {lat_lower} due to {cause}."

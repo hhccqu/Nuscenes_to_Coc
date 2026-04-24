@@ -9,44 +9,62 @@ CAMERA_NAMES = [
     "CAM_BACK_RIGHT",
 ]
 
+# Longitudinal decisions aligned with Alpamayo-R1 Table 1 (7 classes)
 LONGITUDINAL_DECISIONS = {
-    "stop_static_constraint",
-    "yield_agent_right_of_way",
-    "lead_obstacle_following",
-    "speed_adaptation_road",
-    "set_speed_tracking",
+    "set_speed_tracking",           # Maintain/reach target speed when unconstrained
+    "lead_obstacle_following",      # Maintain safe time gap to lead entity
+    "speed_adaptation_road",        # Adjust speed for road features (curves, bumps, turns)
+    "gap_searching",                # Adjust speed to create usable gap for LC/merge
+    "acceleration_passing",         # Increase speed to pass a slower lead (with lateral plan)
+    "yield_agent_right_of_way",     # Slow/stop to concede priority (pedestrians, cut-ins, etc.)
+    "stop_static_constraint",       # Decelerate to and hold at control points (stop line, red light)
     "none",
 }
 
+# Lateral decisions aligned with Alpamayo-R1 Table 1 (8 classes)
 LATERAL_DECISIONS = {
-    "turn_intersection",
-    "lane_change_left",
-    "lane_change_right",
-    "in_lane_nudge_left",
-    "in_lane_nudge_right",
-    "lane_keeping_centering",
+    "lane_keeping_centering",       # Maintain position within lane; minor in-lane offsets allowed
+    "merge_split",                  # Transition between facilities (on-ramp ↔ mainline)
+    "out_of_lane_nudge_left",       # Brief intentional line-crossing left for clearance
+    "out_of_lane_nudge_right",      # Brief intentional line-crossing right for clearance
+    "in_lane_nudge_left",           # Temporary offset left within lane (no line crossing)
+    "in_lane_nudge_right",          # Temporary offset right within lane (no line crossing)
+    "lane_change_left",             # Full adjacent-lane transition left
+    "lane_change_right",            # Full adjacent-lane transition right
+    "pull_over",                    # Move toward edge/shoulder or designated stop area
+    "turn_left",                    # Planned path onto different road segment, heading change left
+    "turn_right",                   # Planned path onto different road segment, heading change right
+    "lateral_maneuver_abort",       # Cancel ongoing lateral maneuver and re-center
     "none",
 }
 
 CONFIDENCE_LEVELS = {"high", "medium", "low"}
 
 LONGITUDINAL_TEXT_MAP = {
-    "stop_static_constraint": "减速停车等待",
-    "yield_agent_right_of_way": "减速让行",
-    "lead_obstacle_following": "跟车行驶",
-    "speed_adaptation_road": "减速通过",
-    "set_speed_tracking": "保持当前车速",
-    "none": "不做明显纵向调整",
+    "set_speed_tracking":        "maintain or reach target speed",
+    "lead_obstacle_following":   "follow the lead vehicle at a safe distance",
+    "speed_adaptation_road":     "adapt speed to road conditions",
+    "gap_searching":             "adjust speed to create a usable gap for the planned maneuver",
+    "acceleration_passing":      "accelerate to pass the slower lead vehicle",
+    "yield_agent_right_of_way":  "yield right-of-way",
+    "stop_static_constraint":    "decelerate to stop at the control point",
+    "none":                      "make no significant longitudinal adjustment",
 }
 
 LATERAL_TEXT_MAP = {
-    "turn_intersection": "完成路口转向",
-    "lane_change_left": "向左变道",
-    "lane_change_right": "向右变道",
-    "in_lane_nudge_left": "向左小幅偏移",
-    "in_lane_nudge_right": "向右小幅偏移",
-    "lane_keeping_centering": "保持在车道中心",
-    "none": "不做明显横向调整",
+    "lane_keeping_centering":    "keep centered in the current lane",
+    "merge_split":               "merge into or split from the adjacent facility",
+    "out_of_lane_nudge_left":    "briefly cross the left lane line to increase clearance",
+    "out_of_lane_nudge_right":   "briefly cross the right lane line to increase clearance",
+    "in_lane_nudge_left":        "nudge left within the lane",
+    "in_lane_nudge_right":       "nudge right within the lane",
+    "lane_change_left":          "change to the left adjacent lane",
+    "lane_change_right":         "change to the right adjacent lane",
+    "pull_over":                 "pull over toward the edge or shoulder",
+    "turn_left":                 "steer left through the intersection",
+    "turn_right":                "steer right through the intersection",
+    "lateral_maneuver_abort":    "abort the lateral maneuver and re-center",
+    "none":                      "make no significant lateral adjustment",
 }
 
 DYNAMIC_VRU_CATEGORIES = {

@@ -246,8 +246,7 @@ def build_dataset(args: argparse.Namespace) -> Dict:
             # P0 filter: reject low-signal segments with no explicit causal trigger.
             # Pure set_speed_tracking + lane_keeping_centering is the "low-signal clip"
             # class the paper explicitly excludes (Fig 3, step 1). Only keep it when
-            # there is a clear lead vehicle close ahead or active traffic control —
-            # i.e. the ego is explicitly *following* something or *reacting* to something.
+            # there is a clear lead vehicle close ahead or active traffic control.
             if (
                 driving_decision["longitudinal"] == "set_speed_tracking"
                 and driving_decision["lateral"] == "lane_keeping_centering"
