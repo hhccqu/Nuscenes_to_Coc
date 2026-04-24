@@ -331,12 +331,27 @@ def _parse_response(raw: str, request_id: str) -> Optional[Dict]:
 
 def _validate_label(label: Dict) -> bool:
     """Basic structural validation of teacher label."""
+    import sys
+    from pathlib import Path
+    _root = Path(__file__).resolve().parent.parent
+    if str(_root) not in sys.path:
+        sys.path.insert(0, str(_root))
+    from nuscenes_coc.constants import LONGITUDINAL_DECISIONS, LATERAL_DECISIONS
+
     if not isinstance(label, dict):
         return False
     if "driving_decision" not in label or "coc_reasoning" not in label:
         return False
     dd = label["driving_decision"]
     if "longitudinal" not in dd or "lateral" not in dd:
+        return False
+    lon = dd["longitudinal"]
+    lat = dd["lateral"]
+    if lon not in LONGITUDINAL_DECISIONS:
+        print(f"  [WARN] Invalid longitudinal category from VLM: '{lon}' — will fallback to rule label")
+        return False
+    if lat not in LATERAL_DECISIONS:
+        print(f"  [WARN] Invalid lateral category from VLM: '{lat}' — will fallback to rule label")
         return False
     reasoning = label.get("coc_reasoning", "")
     if not reasoning or len(reasoning.strip()) < 10:

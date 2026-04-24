@@ -29,6 +29,8 @@ def _history_image_assets(history_frames: List[Dict]) -> List[Dict]:
 
 
 def _teacher_system_prompt() -> str:
+    longitudinal = sorted(LONGITUDINAL_DECISIONS)
+    lateral = sorted(LATERAL_DECISIONS)
     return (
         "You are an autonomous driving CoC (Chain-of-Causality) data annotator following the Alpamayo paper methodology. "
         "You will receive multi-camera history images from the 2s observation window before the keyframe, "
@@ -39,6 +41,9 @@ def _teacher_system_prompt() -> str:
         "Three strict rules: (a) Decision grounding — decision must match future trajectory evidence. "
         "(b) Causal locality — components must come from history observation only, never from future frames. "
         "(c) Annotation economy — include only components directly causing the decision. "
+        f"CRITICAL: You MUST choose longitudinal from this EXACT list only: {longitudinal}. "
+        f"You MUST choose lateral from this EXACT list only: {lateral}. "
+        "DO NOT invent new category names. If unsure, choose the closest valid option from the list. "
         "Output JSON only. No explanations, no Markdown."
     )
 
@@ -49,8 +54,9 @@ def _teacher_user_prompt() -> str:
     return (
         "Annotate the driving scene following these steps: "
         "Step 1 — Determine the longitudinal and lateral driving decisions using the history images and future trajectory as confirmation. "
-        f"Longitudinal must be one of: {longitudinal}. "
-        f"Lateral must be one of: {lateral}. "
+        f"Longitudinal MUST be exactly one of these strings (copy verbatim): {longitudinal}. "
+        f"Lateral MUST be exactly one of these strings (copy verbatim): {lateral}. "
+        "WARNING: Using any string not in the above lists (e.g. 'gentle_accelerate', 'maintain_speed', 'cruise') is INVALID and will be rejected. "
         "Step 2 — Identify 1-3 critical causal components from the history observation window that directly caused the decision. "
         "Component categories: critical_objects, traffic_controls, road_events, lane_info, ego_motion. "
         "For each component, describe its type, relative position, and crucially HOW it affects ego behavior "
